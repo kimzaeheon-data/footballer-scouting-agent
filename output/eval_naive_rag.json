@@ -1,0 +1,26 @@
+{
+  "bge-m3": {
+    "hit_rate_at_5": 0.0725,
+    "mrr": 0.0362,
+    "context_precision": 0.0145,
+    "context_recall": 0.0242,
+    "total_questions": 69,
+    "type_hit_rate": {
+      "single": 0.15,
+      "complex": 0.1333,
+      "followup": 0.0
+    }
+  },
+  "openai-text-embedding-3-small": {
+    "hit_rate_at_5": 0.0,
+    "mrr": 0.0,
+    "context_precision": 0.0,
+    "context_recall": 0.0,
+    "total_questions": 69,
+    "type_hit_rate": {
+      "single": 0.0,
+      "complex": 0.0,
+      "followup": 0.0
+    }
+  }
+}

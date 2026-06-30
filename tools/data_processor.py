@@ -11,10 +11,10 @@ os.makedirs(PROCESSED_DIR, exist_ok=True)
 
 # ── 포지션 그룹 매핑 ───────────────────────────────────────
 POSITION_MAP = {
-    "GK": "GK",
-    "CB": "DF", "LB": "DF", "RB": "DF", "LWB": "DF", "RWB": "DF",
-    "DM": "MF", "CM": "MF", "AM": "MF", "LM": "MF", "RM": "MF",
-    "LW": "FW", "RW": "FW", "CF": "FW", "ST": "FW", "SS": "FW",
+    "GKP": "GKP",
+    "DEF": "DEF",
+    "MID": "MID",
+    "FWD": "FWD",
 }
 
 # 포지션 정규화 함수 (첫 번째 포지션만 사용)
@@ -42,6 +42,7 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     # % 컬럼 → float 변환
     pct_cols = [c for c in df.columns if "%" in c]
     for col in pct_cols:
+        df[col] = df[col].astype(str).str.replace("%", "").str.strip()
         df[col] = pd.to_numeric(df[col], errors="coerce")
 
     # 수치형 결측치 → 0 (출전 없는 선수는 0이 맞음)
