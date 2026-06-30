@@ -1,0 +1,9 @@
+langchain
+langchain-openai
+langchain-community
+langgraph
+chromadb
+pandas
+python-dotenv
+pydantic
+jupyter
