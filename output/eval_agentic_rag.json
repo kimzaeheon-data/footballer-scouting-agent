@@ -1,0 +1,16 @@
+{
+  "hit_rate_at_5": 0.9565,
+  "mrr": 0.9203,
+  "context_precision": 0.8382,
+  "context_recall": 0.8841,
+  "total_questions": 69,
+  "type_hit_rate": {
+    "single": 1.0,
+    "complex": 0.9333,
+    "followup": 0.9412
+  },
+  "tool_counts": {
+    "stat_query": 72,
+    "player_lookup": 3
+  }
+}

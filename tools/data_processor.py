@@ -32,6 +32,13 @@ def load_data(path: str = RAW_PATH) -> pd.DataFrame:
     return df
 
 
+# 최소 출전 시간 기준: "최소 20경기(1800분) 이상 출전"을 기본으로 하되, 특정 포지션 표본이
+# 너무 작아지면(스카우팅에 쓸 만한 최소 인원 미만) 15경기(1350분)로 완화한다.
+MIN_MINUTES_PRIMARY = 1800
+MIN_MINUTES_FALLBACK = 1350
+MIN_GROUP_SIZE = 15  # 포지션별 최소 표본 수
+
+
 # ── 2. 결측치 처리 ─────────────────────────────────────────
 def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     df = df.copy()
@@ -53,10 +60,22 @@ def clean_data(df: pd.DataFrame) -> pd.DataFrame:
     str_cols = df.select_dtypes(include="object").columns
     df[str_cols] = df[str_cols].fillna("Unknown")
 
-    # 최소 출전 시간 필터 (90분 미만 제거 — 노이즈 방지)
-    df = df[df["Minutes"] >= 90].reset_index(drop=True)
+    # 최소 출전 시간 필터: 1800분(20경기) 기준으로 걸러보고, 어느 포지션이라도 표본이
+    # MIN_GROUP_SIZE 밑으로 떨어지면 전체를 1350분(15경기) 기준으로 완화한다.
+    primary = df[df["Minutes"] >= MIN_MINUTES_PRIMARY]
+    group_sizes = primary["Position"].value_counts()
+    if not group_sizes.empty and group_sizes.min() < MIN_GROUP_SIZE:
+        threshold = MIN_MINUTES_FALLBACK
+        print(
+            f"[clean] {MIN_MINUTES_PRIMARY}분 기준 시 최소 포지션 표본이 {group_sizes.min()}명"
+            f"(< {MIN_GROUP_SIZE})이라 {MIN_MINUTES_FALLBACK}분으로 완화"
+        )
+    else:
+        threshold = MIN_MINUTES_PRIMARY
 
-    print(f"[clean] 필터링 후 {df.shape[0]}명")
+    df = df[df["Minutes"] >= threshold].reset_index(drop=True)
+
+    print(f"[clean] 출전시간 {threshold}분 이상 필터링 후 {df.shape[0]}명")
     return df
 
 

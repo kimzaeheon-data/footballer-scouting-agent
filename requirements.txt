@@ -1,9 +1,12 @@
-langchain
 langchain-openai
-langchain-community
+langchain-core
 langgraph
-chromadb
+openai
+faiss-cpu
+sentence-transformers
+scikit-learn
 pandas
+numpy
 python-dotenv
 pydantic
 jupyter
