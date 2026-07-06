@@ -16,6 +16,10 @@ from tools.structured_query import StructuredQueryParser, StructuredRetriever
 
 load_dotenv()
 
+_REPORT_NO_HINTS = ["아니", "괜찮", "됐", "no", "말고", "필요없"]
+_REPORT_YES_SHORT = {"응", "네", "어", "ㅇㅇ", "yes", "ok", "okay"}  # 첫 단어로만 인정 (부분일치 시 오탐 잦음)
+_REPORT_YES_PHRASES = ["그래", "좋아", "부탁", "해줘", "해주세요"]  # 문장 어디에 있어도 인정
+
 SYSTEM_PROMPT = """
 너는 프리미어리그 2024-25 시즌 선수 데이터를 기반으로 답변하는 축구 스카우팅 어시스턴트야.
 
@@ -105,7 +109,10 @@ class RouterRAG:
         return {"results": results, "candidates": candidates, "mode": mode, "spec": spec}
 
     # ── 단일 쿼리 (검색 + 답변 생성) ───────────────────────
-    def query(self, question: str, reset_history: bool = False) -> dict:
+    def query(self, question: str, reset_history: bool = False, offer_report: bool = False) -> dict:
+        """offer_report=True면 구조화 검색으로 선수가 나온 답변 끝에 스카우팅 리포트 제안을
+        덧붙인다. 기본값 False — evaluate_router_full.py 등 기존 평가 스크립트의 answer_hit/
+        faithfulness 채점에 영향을 주지 않기 위해 옵트인으로 둠 (실제 대화용 진입점에서만 켤 것)."""
         if reset_history:
             self.history = []
             self.last_candidates = []
@@ -125,6 +132,13 @@ class RouterRAG:
             temperature=0.2,
         )
         answer = response.choices[0].message.content
+
+        report_suggestion = None
+        if offer_report and retrieval["mode"] == "structured" and retrieval["candidates"]:
+            top_player = retrieval["candidates"][0]
+            report_suggestion = f"{top_player} 선수 스카우팅 리포트를 이미지로 작성해드릴까요?"
+            answer = f"{answer}\n\n{report_suggestion}"
+
         self.history.append({"role": "assistant", "content": answer})
 
         return {
@@ -132,7 +146,28 @@ class RouterRAG:
             "answer": answer,
             "retrieved": results,
             "retrieval_mode": retrieval["mode"],
+            "report_suggestion": report_suggestion,
         }
+
+    # ── 리포트 제안에 대한 사용자 응답 해석 (규칙 기반, LLM 호출 없음) ──
+    @staticmethod
+    def wants_report(reply: str) -> bool:
+        """짧은 긍정어("어", "네" 등)는 다른 단어에 우연히 포함되기 쉬워서(예: "물어본거야"의 "어")
+        문장 첫 단어로 나올 때만 인정한다. "부탁"/"해줘"처럼 덜 헷갈리는 표현은 어디 있어도 인정."""
+        raw = (reply or "").strip()
+        reply_lower = raw.lower()
+        if any(h in reply_lower for h in _REPORT_NO_HINTS):
+            return False
+        tokens = reply_lower.replace("!", "").replace(".", "").replace(",", "").split()
+        if tokens and tokens[0] in _REPORT_YES_SHORT:
+            return True
+        return any(h in reply_lower for h in _REPORT_YES_PHRASES)
+
+    # ── 스카우팅 리포트 이미지 생성 ────────────────────────
+    def generate_report(self, player_name: str, output_path: str = None) -> str:
+        """tools/scouting_report.py로 이미지 카드를 만들어 저장된 파일 경로를 반환."""
+        from tools.scouting_report import render_scouting_card
+        return render_scouting_card(player_name, output_path=output_path)
 
     def reset(self):
         self.history = []
