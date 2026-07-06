@@ -3,3 +3,7 @@ data/
 __pycache__/
 *.pyc
 .DS_Store
+
+# 골든셋 문항/정답이 그대로 노출되는 상세 평가 로그 (집계 지표 파일은 유지, raw Q&A만 제외)
+output/*_miss_log.json
+output/eval_refusal.json
