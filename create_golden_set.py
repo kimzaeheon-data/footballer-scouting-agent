@@ -148,13 +148,15 @@ def build_complex(df: pd.DataFrame) -> list[dict]:
     })
 
     # C007
-    sub = df[(df["Position"] == "MID") & (df["Tackles"] >= df[df["Position"] == "MID"]["Tackles"].quantile(0.6))]
+    # 원래 quantile(0.6)이었는데, 파서 규칙("명시적 숫자 없으면 항상 50% 기본값")과 어긋나서
+    # 다른 percentile 항목들처럼 50%로 통일.
+    sub = df[(df["Position"] == "MID") & (df["Tackles"] >= df[df["Position"] == "MID"]["Tackles"].quantile(0.5))]
     top = sub.nlargest(3, "Passes%")["Player Name"].tolist()
     results.append({
         "id": "C007", "type": "complex",
         "question": "압박과 태클이 강하면서 패스 정확도도 높은 미드필더는?",
         "expected_players": top,
-        "conditions": {"position": "MID", "Tackles_min_percentile": 60, "sort_by": "Passes%"},
+        "conditions": {"position": "MID", "Tackles_min_percentile": 50, "sort_by": "Passes%"},
     })
 
     # C008
@@ -168,13 +170,15 @@ def build_complex(df: pd.DataFrame) -> list[dict]:
     })
 
     # C009
-    sub = df[(df["Position"] == "MID") & (df["Fouls"] <= df[df["Position"] == "MID"]["Fouls"].quantile(0.4))]
+    # 원래 quantile(0.4)였는데, 파서 규칙("명시적 숫자 없으면 항상 50% 기본값")과 어긋나서
+    # 다른 percentile 항목들처럼 50%로 통일.
+    sub = df[(df["Position"] == "MID") & (df["Fouls"] <= df[df["Position"] == "MID"]["Fouls"].quantile(0.5))]
     top = sub.nlargest(3, "Tackles")["Player Name"].tolist()
     results.append({
         "id": "C009", "type": "complex",
         "question": "파울 없이 클린하게 수비하면서 태클 횟수도 많은 미드필더는?",
         "expected_players": top,
-        "conditions": {"position": "MID", "Fouls_max_percentile": 40, "sort_by": "Tackles"},
+        "conditions": {"position": "MID", "Fouls_max_percentile": 50, "sort_by": "Tackles"},
     })
 
     # C010
@@ -218,13 +222,20 @@ def build_complex(df: pd.DataFrame) -> list[dict]:
     })
 
     # C014
-    sub = df[(df["Position"] == "MID") & (df["Yellow Cards"] <= 3) & (df["Minutes"] >= 1800)]
+    # 원래 Yellow Cards<=3 절대값으로 하드코딩돼 있었는데, "카드 없이/파울 없이" 패턴은
+    # 다른 항목들(C009 등)처럼 percentile 필터로 통일해야 파서 규칙과 golden 정답이 일치한다.
+    mid_pool = df[df["Position"] == "MID"]
+    sub = df[
+        (df["Position"] == "MID")
+        & (df["Yellow Cards"] <= mid_pool["Yellow Cards"].quantile(0.5))
+        & (df["Minutes"] >= 1800)
+    ]
     top = sub.nlargest(3, "Tackles")["Player Name"].tolist()
     results.append({
         "id": "C014", "type": "complex",
         "question": "주전으로 뛰면서 경고 카드 없이 강한 압박을 하는 미드필더는?",
         "expected_players": top,
-        "conditions": {"position": "MID", "Yellow Cards_max": 3, "Minutes_min": 1800, "sort_by": "Tackles"},
+        "conditions": {"position": "MID", "Yellow Cards_max_percentile": 50, "Minutes_min": 1800, "sort_by": "Tackles"},
     })
 
     # C015

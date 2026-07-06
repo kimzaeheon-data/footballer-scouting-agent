@@ -30,6 +30,7 @@ class EvalResult:
     skipped: int = 0
     tool_counts: dict = field(default_factory=dict)
     type_hits: dict = field(default_factory=lambda: {"single": [], "complex": [], "followup": []})
+    miss_log: list = field(default_factory=list)
 
     @property
     def hit_rate(self) -> float:
@@ -116,6 +117,13 @@ def evaluate(rag: AgenticRAG, golden_data: list[dict], verbose: bool = True) -> 
                     _log_miss(item["id"], question, expected, scored_players, r["all_tool_players"], r["tools_used"], r["answer"])
                 elif verbose and hit and (precision < 0.6 or recall < 1.0):
                     _log_loose(item["id"], question, expected, scored_players, precision, recall)
+                if not hit:
+                    result.miss_log.append({
+                        "id": item["id"], "type": "followup", "question": question,
+                        "expected": expected, "retrieved": scored_players,
+                        "all_tool_players": r["all_tool_players"], "tools_used": r["tools_used"],
+                        "answer": r["answer"], "precision": precision, "recall": recall,
+                    })
                 result.total += 1
                 result.hits += hit
                 result.rr_sum += rr
@@ -139,6 +147,13 @@ def evaluate(rag: AgenticRAG, golden_data: list[dict], verbose: bool = True) -> 
                 _log_miss(item["id"], question, expected, r["retrieved_players"], r["all_tool_players"], r["tools_used"], r["answer"])
             elif verbose and hit and (precision < 0.6 or recall < 1.0):
                 _log_loose(item["id"], question, expected, r["retrieved_players"], precision, recall)
+            if not hit:
+                result.miss_log.append({
+                    "id": item["id"], "type": q_type, "question": question,
+                    "expected": expected, "retrieved": r["retrieved_players"],
+                    "all_tool_players": r["all_tool_players"], "tools_used": r["tools_used"],
+                    "answer": r["answer"], "precision": precision, "recall": recall,
+                })
             result.total += 1
             result.hits += hit
             result.rr_sum += rr
@@ -196,6 +211,10 @@ def print_report(router_json: dict, result: EvalResult):
     with open("output/eval_agentic_rag.json", "w", encoding="utf-8") as f:
         json.dump(output, f, ensure_ascii=False, indent=2)
     print("\n결과 저장: output/eval_agentic_rag.json")
+
+    with open("output/agentic_miss_log.json", "w", encoding="utf-8") as f:
+        json.dump(result.miss_log, f, ensure_ascii=False, indent=2)
+    print(f"미스 상세 로그 저장: output/agentic_miss_log.json ({len(result.miss_log)}건)")
 
 
 if __name__ == "__main__":

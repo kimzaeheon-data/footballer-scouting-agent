@@ -1,0 +1,22 @@
+{
+  "total": 42,
+  "retrieval_hit_rate": 0.9524,
+  "answer_hit_rate": 0.9524,
+  "by_variant": {
+    "casual": {
+      "total": 14,
+      "retrieval_hit_rate": 0.9286,
+      "answer_hit_rate": 0.9286
+    },
+    "typo_abbrev": {
+      "total": 14,
+      "retrieval_hit_rate": 1.0,
+      "answer_hit_rate": 1.0
+    },
+    "reordered": {
+      "total": 14,
+      "retrieval_hit_rate": 0.9286,
+      "answer_hit_rate": 0.9286
+    }
+  }
+}

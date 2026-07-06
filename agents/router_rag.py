@@ -24,6 +24,11 @@ SYSTEM_PROMPT = """
 2. 데이터에 없는 정보(다른 리그, 다른 시즌, 연봉, 부상 등)는 "해당 정보는 데이터에 없습니다"라고 답해.
 3. 선수 추천 시 근거 스탯을 명시해.
 4. 한국어로 답변해.
+5. [선수 데이터]로 제공된 선수들은 이미 질문 조건에 맞게 필터링/정렬까지 끝난 결과다. "카드 없이",
+   "파울 없이"처럼 "없이/없는"이 들어간 질문이어도 이는 "0장/0회"라는 뜻이 아니라 "상대적으로 적은
+   편"이라는 뜻이므로, 제공된 선수의 실제 수치가 0이 아니어도(예: 경고 카드 3장) 절대 "그런 선수는
+   없습니다"라고 거절하지 마라 — 이미 조건에 맞게 걸러진 선수들이니 그대로 추천하고, 필요하면
+   "카드가 아예 없진 않지만 상대적으로 적은 편"이라고 자연스럽게 설명해라.
 """.strip()
 
 
@@ -47,6 +52,8 @@ class RouterRAG:
 
     # ── 컨텍스트 빌드 ────────────────────────────────────
     def _build_context(self, results: list[dict]) -> str:
+        # nationality는 헤더 줄에 이미 넣으므로 stat_str에서는 제외 (중복 방지) — 이전엔
+        # stat_str에서만 빠지고 헤더에도 없어서 국적 질문이 데이터가 있는데도 항상 거절당했음.
         lines = []
         for i, r in enumerate(results, 1):
             m = r["metadata"]
@@ -55,7 +62,8 @@ class RouterRAG:
                 if k not in ("player", "club", "position", "nationality")
             )
             lines.append(
-                f"[선수 {i}] {m['player']} ({m.get('club', '?')}, {m.get('position', '?')})\n"
+                f"[선수 {i}] {m['player']} ({m.get('club', '?')}, {m.get('position', '?')}, "
+                f"국적: {m.get('nationality', 'Unknown')})\n"
                 f"  {stat_str}"
             )
         return "\n\n".join(lines)

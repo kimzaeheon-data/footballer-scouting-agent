@@ -1,0 +1,24 @@
+{
+  "retrieval_hit_rate_at_5": 1.0,
+  "answer_hit_rate": 0.9855,
+  "mrr": 1.0,
+  "context_precision": 0.9662,
+  "context_recall": 0.9662,
+  "faithfulness_rate": 0.9837,
+  "faithfulness_checked_count": 63,
+  "total_questions": 69,
+  "type_retrieval_hit_rate": {
+    "single": 1.0,
+    "complex": 1.0,
+    "followup": 1.0
+  },
+  "type_answer_hit_rate": {
+    "single": 1.0,
+    "complex": 1.0,
+    "followup": 0.9706
+  },
+  "mode_counts": {
+    "structured": 69,
+    "vector": 0
+  }
+}
