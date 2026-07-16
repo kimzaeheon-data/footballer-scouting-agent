@@ -14,20 +14,22 @@
 
 | 지표 | naive (bge-m3) | naive (openai) | router (전체 파이프라인) | agentic (전체 파이프라인) |
 |---|---|---|---|---|
-| Answer Hit Rate | 7.25%* | 0%* | **98.55%** | 97.10% |
-| MRR | 0.0362 | 0.0000 | 1.0000 | 0.9565 |
-| Context Precision | 0.0145 | 0.0000 | 0.9662 | 0.9155 |
-| Context Recall | 0.0242 | 0.0000 | 0.9662 | 0.9130 |
-| Faithfulness (숫자 근거성) | — | — | 98.37% | 측정 안 함 |
+| Answer Hit Rate | 7.25%* | 0%* | **98.55%** | 98.55% |
+| MRR | 0.0362 | 0.0000 | 1.0000 | 0.9710 |
+| Context Precision | 0.0145 | 0.0000 | 0.9662 | 0.9203 |
+| Context Recall | 0.0242 | 0.0000 | 0.9662 | 0.9179 |
+| Faithfulness (숫자 근거성) | — | — | 98.37% | 88.68% |
 
 \* naive는 retrieval Hit Rate@5 기준 (최종 답변 생성 단계까지 못 감)
+router 지표는 2026-07-06 측정, agentic·faithfulness는 2026-07-16 재측정 기준입니다.
 
 **결론:** 순수 벡터 검색(naive RAG)은 argmax/필터형 질문에서 사실상 못 씁니다(7% 이하).
 질문을 구조화된 스펙으로 변환해 pandas로 정확히 필터링하는 router RAG와, LangGraph
-ReAct 에이전트가 스스로 도구를 선택하는 agentic RAG는 둘 다 실사용 가능한 수준(97~99%)
-입니다. 이번 골든셋 기준으로는 router RAG가 근소 우위(정확도 + 결정론적 재현성)로
-1순위 권장. 세부 비교, 발견한 버그, 남은 이슈는 **[RAG_COMPARISON_REPORT.md](RAG_COMPARISON_REPORT.md)**
-에 정리했습니다.
+ReAct 에이전트가 스스로 도구를 선택하는 agentic RAG는 둘 다 실사용 가능한 수준(Hit Rate
+98%대)입니다. Faithfulness(답변 숫자가 실제 데이터 근거인지)는 router가 98.37%로 agentic
+(88.68%)보다 뚜렷이 높아, 이번 골든셋 기준으로는 router RAG가 1순위 권장(정확도 +
+결정론적 재현성 + 근거성). 세부 비교, 발견한 버그, 남은 이슈는
+**[RAG_COMPARISON_REPORT.md](RAG_COMPARISON_REPORT.md)**에 정리했습니다.
 
 ## 아키텍처
 
@@ -62,7 +64,7 @@ evaluate/
   evaluate_rag.py            naive RAG 평가 (bge-m3 vs openai 임베딩)
   evaluate_router.py         router_rag 파서 단위 평가
   evaluate_router_full.py    router_rag 전체 파이프라인 평가 (Answer Hit Rate, Faithfulness)
-  evaluate_agentic.py        agentic_rag 전체 파이프라인 평가
+  evaluate_agentic.py        agentic_rag 전체 파이프라인 평가 (Hit Rate/MRR/Precision/Recall/Faithfulness)
   evaluate_refusal.py        데이터에 없는 질문 거절 처리 평가
   evaluate_robustness.py     골든셋 표현 변형(반말/오타/어순) 강건성 평가
 data/
