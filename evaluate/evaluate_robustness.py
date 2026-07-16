@@ -18,7 +18,7 @@ from dataclasses import dataclass, field
 from tools.retriever import FAISSRetriever
 from tools.embedder import OpenAIEmbedder
 from agents.router_rag import RouterRAG
-from evaluate_router_full import compute_retrieval_metrics, compute_answer_hit, check_faithfulness
+from evaluate.evaluate_router_full import compute_retrieval_metrics, compute_answer_hit, check_faithfulness
 
 ROBUSTNESS_PATH = "data/robustness_set.json"
 TOP_K = 5
