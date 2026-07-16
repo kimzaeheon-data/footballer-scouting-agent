@@ -76,7 +76,8 @@ RAG_COMPARISON_REPORT.md  3자 비교 최종 리포트
 
 ## 데이터
 
-- `data/epl_player_stats_24_25.csv` — 프리미어리그 2024-25 시즌 선수 스탯 (출처: fbref)
+- `data/epl_player_stats_24_25.csv` — 프리미어리그 2024-25 시즌 선수 스탯
+  (출처: [Kaggle - English Premier League Player Stats 24/25](https://www.kaggle.com/datasets/aesika/english-premier-league-player-stats-2425))
 - 좌표/이벤트 로그 데이터는 없어 실제 히트맵 대신, 스카우팅 리포트는 포지션 동료 대비
   퍼센타일 랭킹으로 대체 표현 (`tools/scouting_report.py`)
 
