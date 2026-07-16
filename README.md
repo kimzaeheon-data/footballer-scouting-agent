@@ -93,6 +93,14 @@ OPENAI_API_KEY=...
 
 ## 사용법
 
+CLI로 바로 실행:
+```bash
+python main.py
+```
+대화형으로 질문하면 router_rag가 답변하고, 필터/정렬로 선수가 특정되면 스카우팅
+리포트 이미지 생성도 제안합니다.
+
+코드에서 직접 쓸 때:
 ```python
 from tools.embedder import BGEEmbedder
 from tools.retriever import FAISSRetriever

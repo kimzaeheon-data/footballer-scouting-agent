@@ -21,17 +21,33 @@ import matplotlib.patches as patches
 PROCESSED_PATH = "data/processed/players_clean.csv"
 
 # 나눔/Noto CJK 폰트 등록 (한글 깨짐 방지)
-_CJK_CANDIDATES = [
-    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",
-    "/usr/share/fonts/opentype/noto/NotoSansCJK-Bold.ttc",
+# 파일 경로로 등록 시도 (플랫폼별 실제 폰트 파일 위치) → 실패하면 시스템에 이미 등록된
+# 폰트 패밀리명으로 폴백. 이전엔 Linux 경로(Cowork 샌드박스)만 있어서 로컬 macOS에서
+# 아무 것도 안 걸리고 조용히 기본 폰트(한글 미지원)로 떨어져 글자가 깨졌었음.
+_CJK_FONT_PATHS = [
+    "/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc",  # Linux (Cowork 샌드박스 등)
+    "/usr/share/fonts/truetype/noto/NotoSansCJK-Regular.ttc",  # Linux (배포판에 따라 경로 다름)
+    "/System/Library/Fonts/AppleSDGothicNeo.ttc",               # macOS
+    "/System/Library/Fonts/Supplemental/AppleGothic.ttf",       # macOS (구버전 대비)
+    "C:/Windows/Fonts/malgun.ttf",                                # Windows
+]
+_CJK_FAMILY_FALLBACKS = [
+    "Apple SD Gothic Neo", "AppleGothic", "Malgun Gothic", "NanumGothic", "Noto Sans CJK KR",
 ]
 _FONT_PROP = None
-for _p in _CJK_CANDIDATES:
+for _p in _CJK_FONT_PATHS:
     if os.path.exists(_p):
         fm.fontManager.addfont(_p)
         _FONT_PROP = fm.FontProperties(fname=_p)
         plt.rcParams["font.family"] = _FONT_PROP.get_name()
         break
+
+if _FONT_PROP is None:
+    _available = {f.name for f in fm.fontManager.ttflist}
+    for _fam in _CJK_FAMILY_FALLBACKS:
+        if _fam in _available:
+            plt.rcParams["font.family"] = _fam
+            break
 
 POSITION_LABEL = {"FWD": "공격수", "MID": "미드필더", "DEF": "수비수", "GKP": "골키퍼"}
 POSITION_COLOR = {"FWD": "#c0392b", "MID": "#1a6b3c", "DEF": "#1f4e8c", "GKP": "#8c6d1f"}
