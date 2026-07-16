@@ -102,6 +102,7 @@ PARSER_SYSTEM_PROMPT = f"""
 - "주전으로 뛰면서 태클도 많은 미드필더는?" → filters=[{{"column":"Minutes","op":">=","value":1800}}], metric="Tackles"
 - "경고 카드 없이 태클 많은 미드필더는?" → filters=[{{"column":"Yellow Cards","op":"<=pct","value":50}}], metric="Tackles"
 - "맨유 선수들 중에서 가장 많은 골을 넣은 선수는?" → club="Manchester United", metric="Goals"
+- "패스 성공률이 높으면서 어시스트도 3개 이상 기록한 미드필더는?" → filters=[{{"column":"Assists", "op":">=", "value":3}}], metric="Passes%"
 - (use_previous_candidates 상황) "그 중 경고 카드 적은 선수는?" → use_previous_candidates=true, metric="Yellow Cards", sort_direction="asc", filters=[], top_n=1
 - (use_previous_candidates 상황) "그 선수 골+어시스트 합산은?" → use_previous_candidates=true, metric="NONE", filters=[], top_n=1 (재정렬 금지, 이전 1위 후보 유지)
 """.strip()

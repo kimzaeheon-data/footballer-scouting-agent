@@ -121,6 +121,7 @@ class AgenticRAG:
         #   - all_tool_players  : 모든 호출을 순서대로 합친 리스트 (디버깅/투명성용, 이전 동작과 동일)
         tools_used: list[str] = []
         per_call_players: list[list[str]] = []
+        per_call_detail: list[list[dict]] = []
         all_tool_players: list[str] = []
         for m in new_messages:
             if isinstance(m, ToolMessage):
@@ -128,19 +129,24 @@ class AgenticRAG:
                 try:
                     payload = json.loads(m.content)
                     players = payload.get("players", [])
+                    detail = payload.get("detail", [])
                 except (json.JSONDecodeError, TypeError):
                     players = []
+                    detail = []
                 per_call_players.append(players)
+                per_call_detail.append(detail)
                 for p in players:
                     if p not in all_tool_players:
                         all_tool_players.append(p)
 
         retrieved_players = per_call_players[-1] if per_call_players else []
+        retrieved_detail = per_call_detail[-1] if per_call_detail else []
 
         return {
             "question": question,
             "answer": answer,
             "retrieved_players": retrieved_players,
+            "retrieved_detail": retrieved_detail,
             "all_tool_players": all_tool_players,
             "tools_used": tools_used,
         }

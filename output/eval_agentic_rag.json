@@ -1,15 +1,17 @@
 {
-  "hit_rate_at_5": 0.971,
-  "mrr": 0.9565,
-  "context_precision": 0.9155,
-  "context_recall": 0.913,
+  "hit_rate_at_5": 0.9855,
+  "mrr": 0.971,
+  "context_precision": 0.9203,
+  "context_recall": 0.9179,
   "total_questions": 69,
   "type_hit_rate": {
     "single": 1.0,
     "complex": 1.0,
-    "followup": 0.9412
+    "followup": 0.9706
   },
   "tool_counts": {
-    "stat_query": 80
-  }
+    "stat_query": 77
+  },
+  "faithfulness_rate": 0.8868,
+  "faithfulness_checked_count": 64
 }

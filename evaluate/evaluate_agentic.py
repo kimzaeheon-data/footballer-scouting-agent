@@ -14,6 +14,7 @@ from dataclasses import dataclass, field
 from tools.retriever import FAISSRetriever
 from tools.embedder import OpenAIEmbedder
 from agents.agentic_rag import AgenticRAG
+from evaluate.evaluate_router_full import check_faithfulness
 
 GOLDEN_PATH = "data/golden_set.json"
 TOP_K = 5
@@ -28,6 +29,8 @@ class EvalResult:
     precision_sum: float = 0.0
     recall_sum: float = 0.0
     skipped: int = 0
+    faithfulness_rate_sum: float = 0.0
+    faithfulness_checked: int = 0
     tool_counts: dict = field(default_factory=dict)
     type_hits: dict = field(default_factory=lambda: {"single": [], "complex": [], "followup": []})
     miss_log: list = field(default_factory=list)
@@ -47,6 +50,10 @@ class EvalResult:
     @property
     def context_recall(self) -> float:
         return self.recall_sum / self.total if self.total else 0.0
+    
+    @property
+    def faithfulness_rate(self) -> float:
+        return self.faithfulness_rate_sum / self.faithfulness_checked if self.faithfulness_checked else None
 
 
 def compute_metrics(retrieved_players: list[str], expected_players: list[str], k: int = TOP_K):
@@ -113,6 +120,12 @@ def evaluate(rag: AgenticRAG, golden_data: list[dict], verbose: bool = True) -> 
                     last_retrieved = r["retrieved_players"]
 
                 hit, rr, precision, recall = compute_metrics(scored_players, expected)
+                retrieved_full = [{"metadata": d} for d in r["retrieved_detail"]]
+                faith = check_faithfulness(r["answer"], retrieved_full)
+                if faith["faithfulness_rate"] is not None:
+                    result.faithfulness_rate_sum += faith["faithfulness_rate"]
+                    result.faithfulness_checked += 1
+
                 if verbose and not hit:
                     _log_miss(item["id"], question, expected, scored_players, r["all_tool_players"], r["tools_used"], r["answer"])
                 elif verbose and hit and (precision < 0.6 or recall < 1.0):
@@ -143,6 +156,12 @@ def evaluate(rag: AgenticRAG, golden_data: list[dict], verbose: bool = True) -> 
                 result.tool_counts[t] = result.tool_counts.get(t, 0) + 1
 
             hit, rr, precision, recall = compute_metrics(r["retrieved_players"], expected)
+            retrieved_full = [{"metadata": d} for d in r["retrieved_detail"]]
+            faith = check_faithfulness(r["answer"], retrieved_full)
+            if faith["faithfulness_rate"] is not None:
+                result.faithfulness_rate_sum += faith["faithfulness_rate"]
+                result.faithfulness_checked += 1
+
             if verbose and not hit:
                 _log_miss(item["id"], question, expected, r["retrieved_players"], r["all_tool_players"], r["tools_used"], r["answer"])
             elif verbose and hit and (precision < 0.6 or recall < 1.0):
@@ -183,6 +202,10 @@ def print_report(router_json: dict, result: EvalResult):
         router_str = f"{router_val:.4f}" if router_val is not None else "N/A"
         print(f"{label:<25}{router_str:>20}{agentic_val:>20.4f}")
 
+    fr = result.faithfulness_rate
+    fr_str = f"{fr:.4f}" if fr is not None else "N/A"
+    print(f"{'Faithfulness (숫자 근거성)':<25}{fr_str:>20}  (숫자 언급된 {result.faithfulness_checked}건 기준)")
+
     print("\n── 유형별 Hit Rate (agentic-rag) ──")
     router_types = router_json.get("type_hit_rate", {})
     for q_type in ["single", "complex", "followup"]:
@@ -206,6 +229,8 @@ def print_report(router_json: dict, result: EvalResult):
             for t, v in result.type_hits.items()
         },
         "tool_counts": result.tool_counts,
+        "faithfulness_rate": round(fr,4) if fr is not None else None,
+        "faithfulness_checked_count": result.faithfulness_checked,
     }
     os.makedirs("output", exist_ok=True)
     with open("output/eval_agentic_rag.json", "w", encoding="utf-8") as f:
