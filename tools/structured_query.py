@@ -65,6 +65,12 @@ PARSER_SYSTEM_PROMPT = f"""
    랭킹 질문이 아니라 소속팀/국적처럼 단순 서술 정보를 묻는 후속 질문이어도, 직전 후보를
    전제로 하면 use_previous_candidates=true, metric=NONE으로 설정한다 (이 경우도 is_stat_query는
    질문 성격에 맞게 true/false 아무거나 정확히 판단하면 되고, 라우팅에는 영향 없음).
+   단 "OO 중에서"에서 OO가 "그/그들/이들" 같은 지시대명사가 아니라 구체적인 새 엔티티(클럽명, 포지션 등)라면 -예: "맨유 선수 중에서",
+   "수비수 중에서" - 이건 이전 대화와 무관하게 새 모집단을 정의하는 완전히 새 질문이다. 이 경우 use_previous_candidates=False로 두고,
+   언급된 조건 (club/position)으로 처음부터 새로 필터링한다. 오직 "그/그들/이들"처럼 지시대명사가 실제로 있을 때만 이전 후보 집합을 이어 받는다.
+   - "맨유 선수 중에서 가장 많은 골을 기록한 선수는?" -> use_previous_candidates=False
+        (새 질문 - "맨유"라는 구체적 새 조건이 있음), club="Manchester United", metric="Goals"
+   - (비교) "그 중에서 맨유 선수 있어?" -> use_previous_candidates=True (지시대명사 "그"가 직전 후보를 가리킴), club="Manchester United"
 3. position: MID/DEF/FWD/GKP 중 하나. 명시 없고 use_previous_candidates도 아니면 ANY.
 4. club: 클럽명이 명시되면 그 클럽, 없으면 ANY
 5. metric: 정렬 기준 컬럼. 질문이 특정 스탯을 요구하지 않으면(예: 소속팀/국적을 묻는 후속 질문) NONE.

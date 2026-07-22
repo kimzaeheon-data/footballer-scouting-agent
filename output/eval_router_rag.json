@@ -1,8 +1,8 @@
 {
   "hit_rate_at_5": 1.0,
-  "mrr": 0.9831,
-  "context_precision": 0.9565,
-  "context_recall": 0.9565,
+  "mrr": 1.0,
+  "context_precision": 0.9758,
+  "context_recall": 0.9469,
   "total_questions": 69,
   "type_hit_rate": {
     "single": 1.0,
