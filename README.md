@@ -1,164 +1,186 @@
-# footballer-scouting-agent
+<div align="center">
 
-프리미어리그 2024-25 시즌 선수 스탯 데이터를 자연어로 질의하는 스카우팅 어시스턴트.
-같은 데이터·같은 질문셋으로 **naive RAG → router RAG → agentic RAG** 세 가지 아키텍처를
-직접 구현하고 정량 비교한 프로젝트입니다.
+# ⚽ Footballer Scouting Agent
 
-> "인터셉트가 가장 많은 미드필더는?" 같은 argmax/필터 질문에서 순수 벡터 검색(RAG)이
-> 왜, 얼마나 실패하는지 확인하고, 이를 해결하는 두 가지 다른 접근(고정 라우팅 vs
-> 자율 에이전트)을 구현해 비교했습니다.
+### 벡터 검색의 한계를 측정하고, 구조화 검색과 AI Agent로 해결한 RAG 비교 프로젝트
 
-## 핵심 결과
+![Python](https://img.shields.io/badge/Python-3.11-3776AB?style=flat-square&logo=python&logoColor=white)
+![LangGraph](https://img.shields.io/badge/LangGraph-Agent-1C3C3C?style=flat-square)
+![FAISS](https://img.shields.io/badge/FAISS-Vector_Search-0467DF?style=flat-square)
+![Project](https://img.shields.io/badge/Project-Personal-6C5CE7?style=flat-square)
 
-세 파이프라인을 같은 골든셋(69문항 + refusal 10문항)으로 평가했습니다.
+</div>
 
-| 지표 | naive (bge-m3) | naive (openai) | router (전체 파이프라인) | agentic (전체 파이프라인) |
-|---|---|---|---|---|
-| Answer Hit Rate | 7.25%* | 0%* | **98.55%** | 98.55% |
-| MRR | 0.0362 | 0.0000 | 1.0000 | 0.9710 |
-| Context Precision | 0.0145 | 0.0000 | 0.9662 | 0.9203 |
-| Context Recall | 0.0242 | 0.0000 | 0.9662 | 0.9179 |
-| Faithfulness (숫자 근거성) | — | — | 98.37% | 88.68% |
+프리미어리그 2024-25 선수 스탯을 자연어로 질의하는 스카우팅 어시스턴트입니다. 동일한 데이터와 평가셋으로 **Naive → Router → Agentic RAG**를 직접 구현·비교하고, 두 방식의 장점을 조합한 **Cascade RAG**까지 확장했습니다.
 
-\* naive는 retrieval Hit Rate@5 기준 (최종 답변 생성 단계까지 못 감)
-router 지표는 2026-07-06 측정, agentic·faithfulness는 2026-07-16 재측정 기준입니다.
+> “인터셉트가 가장 많은 미드필더는?”처럼 최댓값·정렬·필터가 필요한 질문은 텍스트 유사도만으로 정확히 풀기 어렵습니다. 이 프로젝트는 그 실패를 수치로 확인하고, 구조화 쿼리와 도구 사용 Agent라는 두 가지 해결책을 비교합니다.
 
-**결론:** 순수 벡터 검색(naive RAG)은 argmax/필터형 질문에서 사실상 못 씁니다(7% 이하).
-질문을 구조화된 스펙으로 변환해 pandas로 정확히 필터링하는 router RAG와, LangGraph
-ReAct 에이전트가 스스로 도구를 선택하는 agentic RAG는 둘 다 실사용 가능한 수준(Hit Rate
-98%대)입니다. Faithfulness(답변 숫자가 실제 데이터 근거인지)는 router가 98.37%로 agentic
-(88.68%)보다 뚜렷이 높아, 이번 골든셋 기준으로는 router RAG가 1순위 권장(정확도 +
-결정론적 재현성 + 근거성). 세부 비교, 발견한 버그, 남은 이슈는
-**[RAG_COMPARISON_REPORT.md](RAG_COMPARISON_REPORT.md)**에 정리했습니다.
+## Demo
 
-router RAG를 기본으로 쓰되, 그 한계(파서가 애매하게 파싱하거나 구조화 검색이 빈손인 경우)를
-agentic RAG로 보완하는 **cascade RAG**(`agents/cascade_rag.py`)를 추가로 구현했습니다. "싸고
-빠른 경로를 기본으로 쓰고, 불확실할 때만 비싼 경로로 에스컬레이션한다"는 cascade 라우팅
-패턴으로, 세 파이프라인의 실측 실패 지점을 그대로 에스컬레이션 트리거로 재사용합니다
-(정량 평가는 아직 골든셋 기준으로 진행 전 — 데모/프로토타입 레이어입니다).
+![Cascade RAG 데모 메인 화면](assets/demo_screenshot_main.jpeg)
 
-## 아키텍처
+각 답변에 어느 경로가 사용되었는지 표시합니다.
 
+- 🔵 `router_rag`: 빠르고 결정론적인 구조화 검색
+- 🟠 `agentic_rag`: Router의 파싱이 모호하거나 검색 결과가 없을 때 Agent로 전환
+
+추가 화면: [Cascade RAG 실행 예시](assets/demo_screenshot.jpeg)
+
+## Key Results
+
+같은 골든셋 69문항과 refusal 10문항으로 세 파이프라인을 평가했습니다.
+
+| Metric | Naive<br>BGE-M3 | Naive<br>OpenAI | Router<br>Full Pipeline | Agentic<br>Full Pipeline |
+|---|---:|---:|---:|---:|
+| Answer Hit Rate | 7.25%¹ | 0%¹ | **98.55%** | **98.55%** |
+| MRR | 0.0362 | 0.0000 | **1.0000** | 0.9710 |
+| Context Precision | 0.0145 | 0.0000 | **0.9662** | 0.9203 |
+| Context Recall | 0.0242 | 0.0000 | **0.9662** | 0.9179 |
+| Faithfulness² | — | — | **98.37%** | 88.68% |
+
+¹ Naive RAG는 최종 생성 단계 전의 Retrieval Hit Rate@5입니다.  
+² 답변에 포함된 숫자가 실제 데이터에 근거하는지 측정했습니다. Router는 2026-07-06, Agentic과 Faithfulness는 2026-07-16 측정 결과입니다.
+
+### What I Learned
+
+- **Vector search is not a database query.** 의미가 비슷한 문서를 찾는 데는 적합하지만 최댓값·정렬·복합 필터를 정확하게 계산하지 못했습니다.
+- **자율성이 항상 정확도를 높이지는 않습니다.** Router와 Agentic의 Answer Hit Rate는 같았지만 숫자 근거성은 Router가 더 높았습니다.
+- **이번 데이터에서는 Router가 기본 경로에 적합했습니다.** 정확도, 재현성, 근거성이 높고 동작을 예측하기 쉽습니다.
+- **Agent는 예외 처리 경로로 가치가 있습니다.** Router가 질문을 모호하게 파싱하거나 결과를 찾지 못할 때만 Agentic RAG로 전환하는 Cascade 패턴을 구현했습니다.
+
+> 현재 Cascade RAG는 동작 가능한 데모·프로토타입이며, 골든셋 기반 정량 평가는 아직 진행 전입니다.
+
+상세 실험, 발견한 버그와 남은 과제는 [RAG_COMPARISON_REPORT.md](RAG_COMPARISON_REPORT.md)에 정리했습니다.
+
+## Architecture
+
+```mermaid
+flowchart TD
+    Q[User Question] --> R[Router RAG]
+    R --> P[Structured Query Parser]
+    P --> C{Query Type}
+    C -->|Stat / filter / ranking| S[pandas Structured Search]
+    C -->|Semantic question| V[FAISS Vector Search]
+    S --> K{Low-confidence signal?}
+    V --> K
+    K -->|No| A[Grounded Answer]
+    K -->|Ambiguous parse or empty result| G[LangGraph ReAct Agent]
+    G --> T[stat_query / vector_search / player_lookup]
+    T --> A
 ```
-naive_rag    질문 임베딩 → 벡터 유사도 검색만
-             └─ 한계: "가장 많은/높은 X" 질문은 텍스트 유사도로 못 풂
 
-router_rag   질문 → LLM이 구조화 스펙(포지션/지표/정렬/필터)으로 변환
-             → is_stat_query 여부로 pandas 필터링 or 벡터 검색 라우팅
-             → 후속 질문("그 중에서 ~")은 이전 후보 carryover로 처리
+### Four Pipelines
 
-agentic_rag  고정 라우팅 없음 — LangGraph ReAct 에이전트가 매 턴 스스로
-             stat_query / vector_search / player_lookup 중 어떤 툴을,
-             몇 번, 어떤 인자로 호출할지 판단
+| Pipeline | 동작 방식 | 장점 | 확인된 한계 |
+|---|---|---|---|
+| Naive RAG | 질문 임베딩 → 유사 문서 검색 | 단순하고 범용적 | 최댓값·정렬·필터 질문에서 실패 |
+| Router RAG | 질문 → 구조화 스펙 → pandas 또는 벡터 검색 | 정확하고 재현 가능 | 파서가 모호하게 해석할 수 있음 |
+| Agentic RAG | Agent가 매 턴 도구와 인자를 선택 | 유연한 다단계 처리 | 숫자 근거성과 동작 예측성이 낮아질 수 있음 |
+| Cascade RAG | Router 우선 → 저신뢰 시 Agent로 전환 | 비용·속도·유연성 균형 | 정량 평가 진행 전 |
 
-cascade_rag  router_rag를 1차로 사용 — 파서가 애매하게 파싱했거나(ambiguous_parse)
-             구조화 검색이 빈손이면(empty_structured_result) agentic_rag로 에스컬레이션
-```
+## Evaluation Design
 
-## 프로젝트 구조
+정답을 알고 있는 질문셋으로 검색과 최종 답변을 분리해 평가했습니다.
 
-```
+- `single`: 단일 조건 질문
+- `complex`: 복합 필터·정렬 질문
+- `followup`: 이전 대화의 후보를 이어받는 후속 질문
+- `refusal`: 데이터로 답할 수 없는 질문
+- `robustness`: 반말, 오타, 어순 변화가 포함된 표현 변형
+
+주요 지표는 Answer Hit Rate, MRR, Context Precision/Recall, Faithfulness입니다. 평가 결과는 `output/*.json`에 저장되며 문항별 상세 로그는 공개 저장소에서 제외했습니다.
+
+## Project Structure
+
+```text
 agents/
-  naive_rag.py        벡터 검색만 하는 베이스라인
-  router_rag.py        구조화 쿼리 파서 + pandas 필터링 + 벡터 검색 라우팅
-  agentic_rag.py       LangGraph ReAct 에이전트 (stat_query/vector_search/player_lookup)
-  cascade_rag.py        router_rag 1차 + 저신뢰 신호 시 agentic_rag 에스컬레이션
+├── naive_rag.py          # Vector search baseline
+├── router_rag.py         # Structured parser + search routing
+├── agentic_rag.py        # LangGraph ReAct agent
+└── cascade_rag.py        # Router first, Agent fallback
+
 tools/
-  data_processor.py    원본 CSV → RAG용 청크/정제 데이터 생성
-  embedder.py           BGE-M3 / OpenAI 임베딩 생성 + FAISS 인덱싱
-  retriever.py          FAISS 벡터 검색
-  structured_query.py   자연어 질문 → 구조화 스펙 변환 (LLM function-calling)
-  agentic_tools.py      agentic_rag용 LangChain 툴 정의
-  scouting_report.py    선수 스카우팅 리포트 이미지 카드 생성
+├── data_processor.py     # Raw CSV preprocessing
+├── embedder.py           # BGE-M3 / OpenAI embeddings
+├── retriever.py          # FAISS vector search
+├── structured_query.py   # Natural language → structured spec
+├── agentic_tools.py      # Agent tools
+└── scouting_report.py    # Player report image generation
+
 evaluate/
-  evaluate_rag.py            naive RAG 평가 (bge-m3 vs openai 임베딩)
-  evaluate_router.py         router_rag 파서 단위 평가
-  evaluate_router_full.py    router_rag 전체 파이프라인 평가 (Answer Hit Rate, Faithfulness)
-  evaluate_agentic.py        agentic_rag 전체 파이프라인 평가 (Hit Rate/MRR/Precision/Recall/Faithfulness)
-  evaluate_refusal.py        데이터에 없는 질문 거절 처리 평가
-  evaluate_robustness.py     골든셋 표현 변형(반말/오타/어순) 강건성 평가
-data/
-  golden_set.json       평가용 질문셋 (single/complex/followup/refusal)
-  robustness_set.json   강건성 평가용 변형 질문셋
-  processed/             정제된 선수 데이터 (CSV/JSON 청크)
-  index/                  FAISS 벡터 인덱스
-create_golden_set.py    골든셋 생성 스크립트 (pandas 필터/정렬 로직 기반 정답 산출)
-demo_cascade.py          cascade RAG Streamlit 채팅 데모 (tier/에스컬레이션 사유 표시)
-RAG_COMPARISON_REPORT.md  3자 비교 최종 리포트
+├── evaluate_rag.py
+├── evaluate_router_full.py
+├── evaluate_agentic.py
+├── evaluate_refusal.py
+└── evaluate_robustness.py
 ```
 
-## 데이터
+## Getting Started
 
-- `data/epl_player_stats_24_25.csv` — 프리미어리그 2024-25 시즌 선수 스탯
-  (출처: [Kaggle - English Premier League Player Stats 24/25](https://www.kaggle.com/datasets/aesika/english-premier-league-player-stats-2425))
-- 좌표/이벤트 로그 데이터는 없어 실제 히트맵 대신, 스카우팅 리포트는 포지션 동료 대비
-  퍼센타일 랭킹으로 대체 표현 (`tools/scouting_report.py`)
+### Requirements
 
-## 셋업
+- Python 3.11 recommended
+- OpenAI API key
 
-Python 3.11 권장(pandas/faiss-cpu/sentence-transformers가 최신 Python 버전에서는 사전빌드
-패키지를 못 찾아 설치가 실패할 수 있음).
+> 일부 라이브러리는 최신 Python 버전에서 사전 빌드 패키지를 제공하지 않아 설치가 실패할 수 있습니다.
+
+### Installation
 
 ```bash
+git clone https://github.com/kimzaeheon-data/footballer-scouting-agent.git
+cd footballer-scouting-agent
+
 python3.11 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-`.env` 파일에 아래 값 필요:
-```
-OPENAI_API_KEY=...
+프로젝트 루트의 `.env`에 API 키를 설정합니다.
+
+```dotenv
+OPENAI_API_KEY=your_api_key
 ```
 
-## 사용법
+### Run
 
-CLI로 바로 실행:
+기본 CLI:
+
 ```bash
 python main.py
 ```
-대화형으로 질문하면 router_rag가 답변하고, 필터/정렬로 선수가 특정되면 스카우팅
-리포트 이미지 생성도 제안합니다.
 
-코드에서 직접 쓸 때:
-```python
-from tools.embedder import BGEEmbedder
-from tools.retriever import FAISSRetriever
-from agents.router_rag import RouterRAG
+Cascade RAG Streamlit 데모:
 
-vector_retriever = FAISSRetriever(embedder=BGEEmbedder())
-vector_retriever.build()  # data/index/에 이미 인덱스가 있으면 로드만 함
-
-rag = RouterRAG(vector_retriever=vector_retriever)
-result = rag.query("인터셉트가 가장 많은 미드필더는?")
-print(result)
-```
-
-Streamlit 데모(cascade RAG, tier/에스컬레이션 표시):
 ```bash
 streamlit run demo_cascade.py
 ```
 
-![cascade RAG 데모 메인 스크린샷](assets/demo_screenshot_main.jpeg)
-![cascade RAG 데모 스크린샷](assets/demo_screenshot.jpeg)
+## Reproduce Evaluation
 
-각 답변 아래 배지로 어느 tier(🔵 router_rag / 🟠 agentic_rag 에스컬레이션)가 답했는지 보여줍니다.
+프로젝트 루트에서 모듈 형태로 실행합니다.
 
-## 평가 재현
-
-프로젝트 루트에서 모듈 형태로 실행해야 `tools`/`agents` 패키지를 정상적으로 찾습니다
-(`python evaluate/evaluate_rag.py`처럼 파일 경로로 직접 실행하면 `ModuleNotFoundError` 발생):
 ```bash
-python -m evaluate.evaluate_rag           # naive RAG
-python -m evaluate.evaluate_router_full   # router RAG 전체 파이프라인
-python -m evaluate.evaluate_agentic       # agentic RAG 전체 파이프라인
-python -m evaluate.evaluate_refusal       # refusal 처리
-python -m evaluate.evaluate_robustness    # 강건성
+python -m evaluate.evaluate_rag
+python -m evaluate.evaluate_router_full
+python -m evaluate.evaluate_agentic
+python -m evaluate.evaluate_refusal
+python -m evaluate.evaluate_robustness
 ```
 
-결과는 `output/*.json`에 집계 지표로 저장됩니다 (골든셋 문항/정답이 그대로 노출되는
-상세 로그는 `.gitignore`로 제외).
+## Data
 
-## 기술 스택
+- Source: [English Premier League Player Stats 24/25](https://www.kaggle.com/datasets/aesika/english-premier-league-player-stats-2425)
+- Scope: EPL 2024-25 player statistics
+- 좌표 및 이벤트 로그가 없어 실제 히트맵 대신 포지션 동료 대비 퍼센타일로 스카우팅 리포트를 표현합니다.
 
-Python · LangChain / LangGraph · OpenAI API · FAISS · BGE-M3 (sentence-transformers) ·
-pandas · scikit-learn
+## Limitations & Next Steps
+
+- Cascade RAG의 골든셋 기반 정량 평가가 필요합니다.
+- 현재 결과에는 응답 시간과 API 비용 비교가 포함되지 않았습니다.
+- 한 시즌의 집계형 선수 데이터만 사용하므로 전술적 맥락과 경기별 변화를 설명하기 어렵습니다.
+- 실제 서비스 적용 전 더 넓은 표현 변형과 adversarial 질문 평가가 필요합니다.
+
+## Tech Stack
+
+`Python` · `LangChain` · `LangGraph` · `OpenAI API` · `FAISS` · `BGE-M3` · `pandas` · `scikit-learn` · `Streamlit`
+
